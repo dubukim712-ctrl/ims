@@ -1,31 +1,40 @@
-import { useMemo } from 'react';
-import { CupSoda, PackagePlus } from 'lucide-react';
-import { PageHeader } from '@/components/ui/PageHeader';
-import { ButtonLink } from '@/components/ui/Button';
-import { LoadingState, ErrorState } from '@/components/ui/States';
-import { StatsGrid } from '@/components/dashboard/StatsGrid';
-import { LowStockSection } from '@/components/dashboard/LowStockSection';
-import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
-import { RecentActivity } from '@/components/dashboard/RecentActivity';
-import { useIngredients } from '@/hooks/useIngredients';
-import { useRecentStockLogs } from '@/hooks/useStock';
-import { computeInventoryStats, getLowStockIngredients } from '@/lib/inventoryStats';
-import { getErrorMessage } from '@/lib/errors';
-import { formatDate } from '@/lib/format';
+import { useMemo } from "react";
+import { CupSoda, PackagePlus } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { ButtonLink } from "@/components/ui/Button";
+import { LoadingState, ErrorState } from "@/components/ui/States";
+import { StatsGrid } from "@/components/dashboard/StatsGrid";
+import { LowStockSection } from "@/components/dashboard/LowStockSection";
+import { CategoryBreakdown } from "@/components/dashboard/CategoryBreakdown";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { useIngredients } from "@/hooks/useIngredients";
+import { useRecentStockLogs } from "@/hooks/useStock";
+import {
+  computeInventoryStats,
+  getLowStockIngredients,
+} from "@/lib/inventoryStats";
+import { getErrorMessage } from "@/lib/errors";
+import { formatDate } from "@/lib/format";
 
 export function DashboardPage() {
   const ingredientsQuery = useIngredients();
   const logsQuery = useRecentStockLogs(6);
 
   const ingredients = ingredientsQuery.data ?? [];
-  const stats = useMemo(() => computeInventoryStats(ingredients), [ingredients]);
-  const lowStock = useMemo(() => getLowStockIngredients(ingredients), [ingredients]);
+  const stats = useMemo(
+    () => computeInventoryStats(ingredients),
+    [ingredients],
+  );
+  const lowStock = useMemo(
+    () => getLowStockIngredients(ingredients),
+    [ingredients],
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow={formatDate()}
-        title="Good day, shop team"
+        title="Good day, knee-gas!"
         description="A quick look at stock health, low-stock alerts and today’s inventory activity."
         actions={
           <>
@@ -52,7 +61,10 @@ export function DashboardPage() {
         <>
           <StatsGrid stats={stats} />
 
-          <LowStockSection lowStock={lowStock} totalIngredients={ingredients.length} />
+          <LowStockSection
+            lowStock={lowStock}
+            totalIngredients={ingredients.length}
+          />
 
           <div className="grid items-start gap-4 lg:grid-cols-2">
             <CategoryBreakdown ingredients={ingredients} />

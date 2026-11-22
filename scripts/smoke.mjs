@@ -358,7 +358,7 @@ const shot = async (name) => {
 };
 
 await page.goto(BASE, { waitUntil: 'networkidle' });
-await page.getByRole('heading', { name: 'Good day, shop team' }).waitFor();
+await page.getByRole('heading', { name: 'Good day, knee-gas!' }).waitFor();
 if (!(await page.getByRole('heading', { name: 'Low-stock alerts' }).isVisible())) {
   throw new Error('Low stock section missing');
 }
@@ -446,7 +446,7 @@ await shot('08-audit-desktop');
 
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goto(BASE, { waitUntil: 'networkidle' });
-await page.getByRole('heading', { name: 'Good day, shop team' }).waitFor();
+await page.getByRole('heading', { name: 'Good day, knee-gas!' }).waitFor();
 await shot('09-dashboard-mobile');
 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 if (overflow > 1) throw new Error(`Mobile horizontal overflow: ${overflow}px`);

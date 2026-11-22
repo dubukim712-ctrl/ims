@@ -33,6 +33,7 @@ Then open your Supabase project → **SQL Editor** and run these files in order:
 1. `supabase/01_tables.sql`
 2. `supabase/02_functions.sql`
 3. `supabase/03_policies_seed.sql`
+4. `supabase/06_realtime.sql`
 
 The seed file adds 15 demo ingredients, 8 drinks, and their recipes. Remove that section if you already have data.
 

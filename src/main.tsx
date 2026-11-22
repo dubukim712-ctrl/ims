@@ -7,13 +7,16 @@ import App from '@/App';
 import { queryClient } from '@/lib/queryClient';
 import '@/index.css';
 import { BranchProvider } from '@/context/BranchContext';
+import { RealtimeProvider } from '@/context/RealtimeProvider';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <BranchProvider>
-          <App />
+          <RealtimeProvider>
+            <App />
+          </RealtimeProvider>
         </BranchProvider>
         <Toaster
           richColors

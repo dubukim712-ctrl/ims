@@ -16,3 +16,9 @@ export function invalidateInventory(client: QueryClient) {
   void client.invalidateQueries({ queryKey: queryKeys.ingredients });
   void client.invalidateQueries({ queryKey: ['stock-logs'] });
 }
+
+export function invalidateRealtimeInventory(client: QueryClient) {
+  void client.invalidateQueries({ queryKey: queryKeys.ingredients });
+  void client.invalidateQueries({ queryKey: ['stock-logs'] });
+  void client.invalidateQueries({ queryKey: queryKeys.drinksWithRecipes });
+}
