@@ -309,7 +309,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <div
             id={listId}
             role="listbox"
-            className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-espresso-200 bg-white p-1 shadow-lg"
+            className="absolute z-50 mt-1 h-60 w-full overflow-y-auto rounded-xl border border-espresso-200 bg-white p-1 shadow-lg"
           >
             {options.map((option, index) => (
               <div
