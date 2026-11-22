@@ -49,7 +49,7 @@ export function QuantityStepper({
           onChange(Number.isFinite(next) ? clamp(next) : min);
         }}
         className={cn(
-          'h-10 w-14 border-x border-espresso-100 bg-transparent text-center text-sm font-semibold text-espresso-900',
+          'h-10 w-14 border-x border-espresso-100 bg-transparent text-center text-base font-semibold text-espresso-900 sm:text-sm',
           'focus:outline-none focus:ring-2 focus:ring-inset focus:ring-caramel-500/30',
           '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
         )}
