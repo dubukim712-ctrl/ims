@@ -36,6 +36,7 @@ Then open your Supabase project → **SQL Editor** and run these files in order:
 4. `supabase/06_realtime.sql`
 
 The seed file adds 15 demo ingredients, 8 drinks, and their recipes. Remove that section if you already have data.
+For an existing database that has already run the earlier SQL files, run `supabase/07_drink_images.sql` to add drink images and refresh the PostgREST schema cache.
 
 > **Current project state:** the Supabase URL and anon key in `.env.local` are valid, but the BrewStock tables do not exist yet. The app shows a readable "Could not find the table" error until you run the SQL files above.
 
@@ -46,7 +47,7 @@ Tables used by the app:
 - `branches` — `name`, `location`, `is_active`
 - `branch_inventory` — `branch_id`, `ingredient_id`, `current_stock`, `reorder_level`
 - `ingredients` — `name`, `category`, `unit` (`g`, `kg`, `ml`, or `pcs`), `cost_per_unit`, `supplier`, `is_active`
-- `drinks` — `name`, `category`, `price`, `is_active`
+- `drinks` — `name`, `category`, `price`, `image_url`, `is_active`
 - `recipe_items` — `drink_id`, `ingredient_id`, `quantity` (amount per cup)
 - `stock_logs` — `branch_id`, `ingredient_id`, `drink_id`, `change_amount`, `type`, `note`, `supplier`, `previous_stock`, `new_stock`, `cups_sold`
 
@@ -56,8 +57,10 @@ RPCs (all transactional, defined in `02_functions.sql`):
 - `adjust_ingredient_stock(p_branch_id, p_ingredient_id, p_change, p_type, p_note)`
 - `log_daily_drink_usage(p_branch_id, p_items jsonb)` — `p_items` is `[{ "drink_id": "...", "cups_sold": 12 }]`
 - `transfer_stock(p_from_branch_id, p_to_branch_id, p_ingredient_id, p_quantity, p_note)`
-- `upsert_recipe(p_drink_id, p_name, p_category, p_price, p_items)` — creates or replaces a drink and its recipe atomically
-- `upsert_drink(p_drink_id, p_name, p_category, p_price)` — creates or edits a drink independently of its recipe
+- `upsert_recipe(p_drink_id, p_name, p_category, p_price, p_items, p_image_url)` — creates or replaces a drink and its recipe atomically
+- `upsert_drink(p_drink_id, p_name, p_category, p_price, p_image_url)` — creates or edits a drink independently of its recipe
+
+Drink images use the public `drink-images` storage bucket (JPEG, PNG, WebP or GIF; up to 5 MB). Anonymous uploads are enabled for this app's current no-login setup; restrict the bucket policies when adding authentication.
 
 `log_daily_drink_usage` validates stock, rejects drinks without recipes, deducts every recipe ingredient, writes one `usage` stock log per ingredient, and rolls back the whole batch if anything is short.
 

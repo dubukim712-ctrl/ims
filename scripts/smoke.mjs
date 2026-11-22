@@ -54,17 +54,17 @@ const recipe = (id, ingredientId, quantity) => ({
 });
 
 const drinks = [
-  { id: 'd1', name: 'Americano', category: 'Coffee', price: 3.5, is_active: true, created_at: now,
+  { id: 'd1', name: 'Americano', category: 'Coffee', price: 3.5, image_url: null, is_active: true, created_at: now,
     recipe_items: [recipe('r1', 'i1', 18)] },
-  { id: 'd2', name: 'Iced Latte', category: 'Coffee', price: 4.5, is_active: true, created_at: now,
+  { id: 'd2', name: 'Iced Latte', category: 'Coffee', price: 4.5, image_url: null, is_active: true, created_at: now,
     recipe_items: [recipe('r2', 'i1', 18), recipe('r3', 'i2', 150)] },
-  { id: 'd3', name: 'Classic Milk Tea', category: 'Milk Tea', price: 4, is_active: true, created_at: now,
+  { id: 'd3', name: 'Classic Milk Tea', category: 'Milk Tea', price: 4, image_url: null, is_active: true, created_at: now,
     recipe_items: [recipe('r4', 'i7', 8), recipe('r5', 'i2', 80), recipe('r6', 'i3', 50)] },
-  { id: 'd4', name: 'Matcha Latte', category: 'Milk Tea', price: 5.2, is_active: true, created_at: now,
+  { id: 'd4', name: 'Matcha Latte', category: 'Milk Tea', price: 5.2, image_url: null, is_active: true, created_at: now,
     recipe_items: [recipe('r7', 'i4', 6), recipe('r8', 'i2', 180)] },
-  { id: 'd5', name: 'Oat Latte', category: 'Coffee', price: 5, is_active: true, created_at: now,
+  { id: 'd5', name: 'Oat Latte', category: 'Coffee', price: 5, image_url: null, is_active: true, created_at: now,
     recipe_items: [recipe('r9', 'i1', 18), recipe('r10', 'i8', 160)] },
-  { id: 'd6', name: 'Seasonal Special', category: 'Other', price: 6, is_active: true, created_at: now,
+  { id: 'd6', name: 'Seasonal Special', category: 'Other', price: 6, image_url: null, is_active: true, created_at: now,
     recipe_items: [] },
 ];
 for (const drink of drinks) {
@@ -104,6 +104,25 @@ const json = (route, body, headers = {}) =>
   route.fulfill({ status: 200, headers: { ...cors, ...headers }, body: JSON.stringify(body) });
 
 async function installMock(page) {
+  await page.route('**/storage/v1/object/**', async (route) => {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') {
+      return route.fulfill({ status: 204, headers: cors });
+    }
+    if (request.method() === 'POST') {
+      const path = new URL(request.url()).pathname.split('/').slice(-2).join('/');
+      return json(route, { Key: path, Id: 'mock-image' });
+    }
+    if (request.method() === 'GET') {
+      return route.fulfill({
+        status: 200,
+        headers: { ...cors, 'content-type': 'image/png' },
+        body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lAAAAABJRU5ErkJggg==', 'base64'),
+      });
+    }
+    return route.fulfill({ status: 405, headers: cors });
+  });
+
   await page.route('**/rest/v1/**', async (route) => {
     const request = route.request();
     if (request.method() === 'OPTIONS') {
@@ -186,11 +205,11 @@ async function installMock(page) {
       }
 
       if (fn === 'upsert_drink') {
-        const { p_drink_id: drinkId, p_name: name, p_category: category, p_price: price } = payload;
+        const { p_drink_id: drinkId, p_name: name, p_category: category, p_price: price, p_image_url: imageUrl } = payload;
         if (drinkId) {
           const drink = drinks.find((entry) => entry.id === drinkId);
           if (!drink) return route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ message: 'Drink not found' }) });
-          Object.assign(drink, { name, category, price: Number(price) });
+          Object.assign(drink, { name, category, price: Number(price), image_url: imageUrl ?? null });
           return json(route, drink);
         }
         const created = {
@@ -198,6 +217,7 @@ async function installMock(page) {
           name,
           category,
           price: Number(price),
+          image_url: imageUrl ?? null,
           is_active: true,
           created_at: now,
           recipe_items: [],
@@ -214,6 +234,7 @@ async function installMock(page) {
           name: payload.p_name,
           category: payload.p_category,
           price: Number(payload.p_price),
+          image_url: payload.p_image_url ?? null,
         });
         drink.recipe_items = (payload.p_items ?? []).map((item, index) => ({
           id: `r-${Date.now()}-${index}`,
@@ -443,16 +464,40 @@ await page.getByRole('button', { name: 'Add drink' }).click();
 await page.getByRole('dialog').getByLabel('Drink name').fill('Vanilla Cold Brew');
 await chooseOption(page.getByRole('dialog').getByLabel('Category'), 'Coffee');
 await page.getByRole('dialog').getByLabel('Price').fill('5.75');
+await page.getByLabel('Drink image').setInputFiles({
+  name: 'vanilla-cold-brew.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lAAAAABJRU5ErkJggg==', 'base64'),
+});
 await page.getByRole('dialog').getByRole('button', { name: 'Add drink' }).click();
 await page.getByText('Vanilla Cold Brew added').waitFor();
+const uploadedDrinkImage = page.getByRole('img', { name: 'Vanilla Cold Brew' });
+await uploadedDrinkImage.waitFor();
+if (!(await uploadedDrinkImage.getAttribute('src'))?.includes('/drink-images/')) {
+  throw new Error('Drink image URL was not saved');
+}
 
 await page.getByRole('button', { name: 'Add recipe' }).click();
-await chooseOption(page.getByRole('dialog').getByLabel('Drink'), 'Vanilla Cold Brew — Coffee — ₱5.75');
+await chooseOption(page.getByRole('dialog').getByRole('combobox', { name: 'Drink*' }), 'Vanilla Cold Brew — Coffee — ₱5.75');
 await chooseOption(page.getByRole('dialog').getByLabel('Ingredient 1', { exact: true }), /Espresso Beans/);
 await page.getByRole('dialog').getByLabel('Quantity 1', { exact: true }).fill('18');
 await page.getByRole('dialog').getByRole('button', { name: 'Add recipe' }).click();
 await page.getByText('Vanilla Cold Brew recipe added').waitFor();
+await page.getByRole('button', { name: 'Edit Vanilla Cold Brew' }).click();
+await page.getByRole('heading', { name: 'Edit recipe' }).waitFor();
+await page.getByLabel('Drink image').setInputFiles({
+  name: 'vanilla-cold-brew-edit.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lAAAAABJRU5ErkJggg==', 'base64'),
+});
+await page.getByRole('button', { name: 'Save changes' }).click();
+await page.getByText('Vanilla Cold Brew recipe updated').waitFor();
 await shot('07-recipes-desktop');
+await page.locator('aside nav a[href="/usage"]').click();
+await page.getByRole('heading', { name: 'Cups sold today', exact: true }).waitFor();
+await page.getByRole('img', { name: 'Vanilla Cold Brew' }).waitFor();
+await page.locator('aside nav a[href="/recipes"]').click();
+await page.getByRole('heading', { name: 'Recipes & audit logs' }).waitFor();
 await page.getByRole('tab', { name: 'Audit logs' }).click();
 await page.getByRole('heading', { name: 'Stock audit log' }).waitFor();
 await shot('08-audit-desktop');

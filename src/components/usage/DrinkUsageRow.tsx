@@ -1,6 +1,7 @@
 import { Controller, type Control, type UseFormRegister } from 'react-hook-form';
 import { Badge } from '@/components/ui/Badge';
 import { QuantityStepper } from '@/components/ui/QuantityStepper';
+import { DrinkThumbnail } from '@/components/ui/DrinkThumbnail';
 import { formatNumber } from '@/lib/format';
 import type { CupsSoldFormValues } from '@/validation/usage.schema';
 import type { DrinkWithRecipe } from '@/types/domain';
@@ -35,21 +36,28 @@ export function DrinkUsageRow({
   return (
     <div className="rounded-2xl border border-espresso-100 bg-white p-3.5 transition hover:border-espresso-200 sm:p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-espresso-900">{drink.name}</p>
-            <Badge variant="neutral">{drink.category}</Badge>
-          </div>
-          <p className={`mt-1 text-[11px] ${hasRecipe ? 'text-espresso-500' : 'text-honey-700'}`}>
-            {hasRecipe
-              ? `${summary}${extra > 0 ? ` · +${extra} more` : ''}`
-              : 'No recipe set — add recipe items in Supabase before logging this drink.'}
-          </p>
-          {error ? (
-            <p role="alert" className="mt-1 text-[11px] font-medium text-berry-700">
-              {error}
+        <div className="flex min-w-0 items-start gap-3">
+          <DrinkThumbnail
+            imageUrl={drink.image_url}
+            name={drink.name}
+            className="h-12 w-12 rounded-xl"
+          />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-espresso-900">{drink.name}</p>
+              <Badge variant="neutral">{drink.category}</Badge>
+            </div>
+            <p className={`mt-1 text-[11px] ${hasRecipe ? 'text-espresso-500' : 'text-honey-700'}`}>
+              {hasRecipe
+                ? `${summary}${extra > 0 ? ` · +${extra} more` : ''}`
+                : 'No recipe set — add recipe items in Supabase before logging this drink.'}
             </p>
-          ) : null}
+            {error ? (
+              <p role="alert" className="mt-1 text-[11px] font-medium text-berry-700">
+                {error}
+              </p>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">

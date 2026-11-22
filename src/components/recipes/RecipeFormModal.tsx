@@ -8,6 +8,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { DrinkImagePicker } from '@/components/recipes/DrinkImagePicker';
 import { useIngredients } from '@/hooks/useIngredients';
 import { useSaveRecipe } from '@/hooks/useRecipes';
 import { DRINK_CATEGORIES } from '@/lib/constants';
@@ -28,6 +29,7 @@ export function RecipeFormModal({ open, onClose, drink, drinks }: RecipeFormModa
   const ingredientsQuery = useIngredients();
   const ingredients = ingredientsQuery.data ?? [];
   const isEdit = Boolean(drink);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [selectedDrinkId, setSelectedDrinkId] = useState(
     drink?.id ?? drinks.find((item) => item.recipe_items.length === 0)?.id ?? drinks[0]?.id ?? '',
   );
@@ -67,14 +69,22 @@ export function RecipeFormModal({ open, onClose, drink, drinks }: RecipeFormModa
     setValue('price', selectedDrink.price);
   }, [isEdit, selectedDrink, setValue]);
 
+  useEffect(() => {
+    setImageFile(null);
+  }, [drink?.id, open, selectedDrinkId]);
+
   const onSubmit = async (values: RecipeFormValues) => {
     try {
       await saveMutation.mutateAsync({
-        drink_id: drink?.id ?? selectedDrinkId,
-        name: values.name,
-        category: values.category,
-        price: values.price,
-        items: values.items,
+        input: {
+          drink_id: drink?.id ?? selectedDrinkId,
+          name: values.name,
+          category: values.category,
+          price: values.price,
+          image_url: drink?.image_url ?? selectedDrink?.image_url ?? null,
+          items: values.items,
+        },
+        imageFile: imageFile ?? undefined,
       });
       toast.success(drink ? `${values.name} recipe updated` : `${values.name} recipe added`);
       onClose();
@@ -176,6 +186,16 @@ export function RecipeFormModal({ open, onClose, drink, drinks }: RecipeFormModa
               />
             </Field>
           </>
+        ) : null}
+
+        {isEdit ? (
+          <DrinkImagePicker
+            id="recipe-image"
+            name={drink?.name ?? selectedDrink?.name ?? 'Drink'}
+            imageUrl={drink?.image_url ?? selectedDrink?.image_url}
+            file={imageFile}
+            onChange={setImageFile}
+          />
         ) : null}
 
         <div>

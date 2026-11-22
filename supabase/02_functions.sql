@@ -382,12 +382,15 @@ $$;
 grant execute on function public.transfer_stock(uuid, uuid, uuid, numeric, text) to anon, authenticated;
 
 -- Create or replace a drink and its complete recipe atomically.
+drop function if exists public.upsert_recipe(uuid, text, text, numeric, jsonb);
+
 create or replace function public.upsert_recipe(
   p_drink_id uuid default null,
   p_name text default null,
   p_category text default 'Other',
   p_price numeric default 0,
-  p_items jsonb default '[]'::jsonb
+  p_items jsonb default '[]'::jsonb,
+  p_image_url text default null
 )
 returns public.drinks
 language plpgsql
@@ -417,8 +420,8 @@ begin
   end if;
 
   if p_drink_id is null then
-    insert into public.drinks (name, category, price, is_active)
-    values (btrim(p_name), btrim(p_category), p_price, true)
+    insert into public.drinks (name, category, price, image_url, is_active)
+    values (btrim(p_name), btrim(p_category), p_price, p_image_url, true)
     returning * into v_drink;
   else
     select * into v_drink
@@ -434,6 +437,7 @@ begin
        set name = btrim(p_name),
            category = btrim(p_category),
            price = p_price,
+           image_url = p_image_url,
            updated_at = now()
      where id = p_drink_id
     returning * into v_drink;
@@ -473,14 +477,17 @@ begin
 end;
 $$;
 
-grant execute on function public.upsert_recipe(uuid, text, text, numeric, jsonb) to anon, authenticated;
+grant execute on function public.upsert_recipe(uuid, text, text, numeric, jsonb, text) to anon, authenticated;
 
 -- Create or update a drink independently of its recipe.
+drop function if exists public.upsert_drink(uuid, text, text, numeric);
+
 create or replace function public.upsert_drink(
   p_drink_id uuid default null,
   p_name text default null,
   p_category text default 'Other',
-  p_price numeric default 0
+  p_price numeric default 0,
+  p_image_url text default null
 )
 returns public.drinks
 language plpgsql
@@ -503,14 +510,15 @@ begin
   end if;
 
   if p_drink_id is null then
-    insert into public.drinks (name, category, price, is_active)
-    values (btrim(p_name), btrim(p_category), p_price, true)
+    insert into public.drinks (name, category, price, image_url, is_active)
+    values (btrim(p_name), btrim(p_category), p_price, p_image_url, true)
     returning * into v_drink;
   else
     update public.drinks
        set name = btrim(p_name),
            category = btrim(p_category),
            price = p_price,
+           image_url = p_image_url,
            updated_at = now()
      where id = p_drink_id
     returning * into v_drink;
@@ -524,4 +532,6 @@ begin
 end;
 $$;
 
-grant execute on function public.upsert_drink(uuid, text, text, numeric) to anon, authenticated;
+grant execute on function public.upsert_drink(uuid, text, text, numeric, text) to anon, authenticated;
+
+notify pgrst, 'reload schema';

@@ -58,6 +58,7 @@ export interface Drink {
   name: string;
   category: string;
   price: number;
+  image_url?: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -119,6 +120,7 @@ export interface DrinkInput {
   name: string;
   category: string;
   price: number;
+  image_url?: string | null;
 }
 
 export interface RecipeInput {
@@ -126,6 +128,7 @@ export interface RecipeInput {
   name: string;
   category: string;
   price: number;
+  image_url?: string | null;
   items: Array<{
     ingredient_id: string;
     quantity: number;

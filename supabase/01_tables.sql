@@ -123,10 +123,14 @@ create table if not exists public.drinks (
   name text not null,
   category text not null default 'Other',
   price numeric(10, 2) not null default 0 check (price >= 0),
+  image_url text,
   is_active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.drinks
+  add column if not exists image_url text;
 
 create table if not exists public.recipe_items (
   id uuid primary key default gen_random_uuid(),

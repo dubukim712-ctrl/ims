@@ -17,7 +17,13 @@ export function useSaveRecipe() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: RecipeInput) => saveRecipe(input),
+    mutationFn: ({
+      input,
+      imageFile,
+    }: {
+      input: RecipeInput;
+      imageFile?: File;
+    }) => saveRecipe(input, imageFile),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinksWithRecipes });
     },
@@ -28,8 +34,15 @@ export function useSaveDrink() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ input, drinkId }: { input: DrinkInput; drinkId?: string }) =>
-      saveDrink(input, drinkId),
+    mutationFn: ({
+      input,
+      drinkId,
+      imageFile,
+    }: {
+      input: DrinkInput;
+      drinkId?: string;
+      imageFile?: File;
+    }) => saveDrink(input, drinkId, imageFile),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.drinksWithRecipes });
     },

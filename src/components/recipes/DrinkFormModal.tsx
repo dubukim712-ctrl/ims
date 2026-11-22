@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { Field } from '@/components/ui/Field';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
+import { DrinkImagePicker } from '@/components/recipes/DrinkImagePicker';
 import { useSaveDrink } from '@/hooks/useRecipes';
 import { DRINK_CATEGORIES } from '@/lib/constants';
 import { getErrorMessage } from '@/lib/errors';
@@ -21,12 +22,17 @@ interface DrinkFormModalProps {
 
 export function DrinkFormModal({ open, onClose, drink }: DrinkFormModalProps) {
   const saveMutation = useSaveDrink();
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const isEdit = Boolean(drink);
   const categoryOptions = useMemo(() => {
     const values = new Set(DRINK_CATEGORIES);
     if (drink?.category) values.add(drink.category);
     return [...values];
   }, [drink?.category]);
+
+  useEffect(() => {
+    setImageFile(null);
+  }, [drink?.id, open]);
 
   const {
     register,
@@ -43,7 +49,11 @@ export function DrinkFormModal({ open, onClose, drink }: DrinkFormModalProps) {
 
   const onSubmit = async (values: DrinkFormValues) => {
     try {
-      await saveMutation.mutateAsync({ input: values, drinkId: drink?.id });
+      await saveMutation.mutateAsync({
+        input: { ...values, image_url: drink?.image_url ?? null },
+        drinkId: drink?.id,
+        imageFile: imageFile ?? undefined,
+      });
       toast.success(drink ? `${values.name} updated` : `${values.name} added`);
       onClose();
     } catch (error) {
@@ -96,6 +106,13 @@ export function DrinkFormModal({ open, onClose, drink }: DrinkFormModalProps) {
             {...register('price', { valueAsNumber: true })}
           />
         </Field>
+        <DrinkImagePicker
+          id="drink-image"
+          name={drink?.name ?? 'Drink'}
+          imageUrl={drink?.image_url}
+          file={imageFile}
+          onChange={setImageFile}
+        />
       </form>
     </Modal>
   );

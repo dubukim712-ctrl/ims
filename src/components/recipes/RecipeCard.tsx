@@ -4,6 +4,7 @@ import { formatMoney, formatQuantity } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { DrinkThumbnail } from '@/components/ui/DrinkThumbnail';
 import type { DrinkWithRecipe, RecipeIngredient } from '@/types/domain';
 
 function ingredientStatus(ingredient: RecipeIngredient) {
@@ -31,12 +32,19 @@ export function RecipeCard({
   return (
     <Card className="flex flex-col p-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-display text-lg leading-tight text-espresso-900">
-            {drink.name}
-          </p>
-          <div className="mt-1.5">
-            <Badge variant="neutral">{drink.category}</Badge>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <DrinkThumbnail
+            imageUrl={drink.image_url}
+            name={drink.name}
+            className="h-14 w-14 rounded-xl"
+          />
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg leading-tight text-espresso-900">
+              {drink.name}
+            </p>
+            <div className="mt-1.5">
+              <Badge variant="neutral">{drink.category}</Badge>
+            </div>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
