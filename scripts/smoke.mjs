@@ -357,8 +357,13 @@ const shot = async (name) => {
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
 };
 
+const chooseOption = async (control, label) => {
+  await control.click();
+  await page.getByRole('option', { name: label, exact: typeof label === 'string' }).click();
+};
+
 await page.goto(BASE, { waitUntil: 'networkidle' });
-await page.getByRole('heading', { name: 'Good day, knee-gas!' }).waitFor();
+await page.getByRole('heading', { name: 'Good day, brew-rats!' }).waitFor();
 if (!(await page.getByRole('heading', { name: 'Low-stock alerts' }).isVisible())) {
   throw new Error('Low stock section missing');
 }
@@ -379,8 +384,16 @@ await shot('02-inventory-desktop');
 await page.getByRole('button', { name: 'Add ingredient' }).click();
 await page.getByRole('dialog').waitFor();
 await page.locator('#name').fill('Vanilla Syrup');
-await page.locator('#category').selectOption('Syrup');
-await page.locator('#unit').selectOption('kg');
+await page.locator('#category').click();
+const categoryOptions = page.getByRole('option');
+const selectedCategory = categoryOptions.filter({ has: page.locator('svg') });
+if (!(await selectedCategory.count())) throw new Error('Selected option checkmark missing');
+const markerWidths = await categoryOptions.evaluateAll((items) =>
+  items.map((item) => item.firstElementChild.getBoundingClientRect().width),
+);
+if (markerWidths.some((width) => width !== markerWidths[0])) throw new Error('Option checkmark spacing is not aligned');
+await page.getByRole('option', { name: 'Syrup', exact: true }).click();
+await chooseOption(page.locator('#unit'), 'kg — kilograms');
 await page.locator('#current_stock').fill('0.9');
 await page.locator('#reorder_level').fill('0.3');
 await page.locator('#cost_per_unit').fill('12');
@@ -391,7 +404,7 @@ await shot('03-inventory-modal-success');
 
 await page.locator('aside nav a[href="/stock-in"]').click();
 await page.getByRole('heading', { name: 'Stock in', exact: true }).waitFor();
-await page.getByLabel('Ingredient').selectOption('i1');
+await chooseOption(page.getByLabel('Ingredient'), /Espresso Beans/);
 await page.getByLabel('Quantity received').fill('500');
 await page.getByLabel('Supplier note').fill('Invoice #1042, delivered chilled');
 await page.getByRole('button', { name: 'Record stock in' }).click();
@@ -415,7 +428,7 @@ await shot('05-usage-desktop');
 
 await page.getByRole('tab', { name: 'Spoilage / adjustment' }).click();
 await page.getByRole('heading', { name: 'Spoilage or adjustment' }).waitFor();
-await page.getByLabel('Ingredient').selectOption('i2');
+await chooseOption(page.getByLabel('Ingredient'), /Fresh Milk/);
 await page.getByLabel('Quantity spoiled').fill('100');
 await page.getByLabel('Reason').fill('Milk expired during closing shift');
 await page.getByRole('button', { name: 'Record spoilage' }).click();
@@ -428,14 +441,14 @@ await page.getByText('Classic Milk Tea').waitFor();
 
 await page.getByRole('button', { name: 'Add drink' }).click();
 await page.getByRole('dialog').getByLabel('Drink name').fill('Vanilla Cold Brew');
-await page.getByRole('dialog').getByLabel('Category').selectOption('Coffee');
+await chooseOption(page.getByRole('dialog').getByLabel('Category'), 'Coffee');
 await page.getByRole('dialog').getByLabel('Price').fill('5.75');
 await page.getByRole('dialog').getByRole('button', { name: 'Add drink' }).click();
 await page.getByText('Vanilla Cold Brew added').waitFor();
 
 await page.getByRole('button', { name: 'Add recipe' }).click();
-await page.getByRole('dialog').getByLabel('Drink').selectOption({ label: 'Vanilla Cold Brew — Coffee — ₱5.75' });
-await page.getByRole('dialog').getByLabel('Ingredient 1', { exact: true }).selectOption('i1');
+await chooseOption(page.getByRole('dialog').getByLabel('Drink'), 'Vanilla Cold Brew — Coffee — ₱5.75');
+await chooseOption(page.getByRole('dialog').getByLabel('Ingredient 1', { exact: true }), /Espresso Beans/);
 await page.getByRole('dialog').getByLabel('Quantity 1', { exact: true }).fill('18');
 await page.getByRole('dialog').getByRole('button', { name: 'Add recipe' }).click();
 await page.getByText('Vanilla Cold Brew recipe added').waitFor();
@@ -446,7 +459,7 @@ await shot('08-audit-desktop');
 
 await page.setViewportSize({ width: 390, height: 844 });
 await page.goto(BASE, { waitUntil: 'networkidle' });
-await page.getByRole('heading', { name: 'Good day, knee-gas!' }).waitFor();
+await page.getByRole('heading', { name: 'Good day, brew-rats!' }).waitFor();
 await shot('09-dashboard-mobile');
 const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 if (overflow > 1) throw new Error(`Mobile horizontal overflow: ${overflow}px`);

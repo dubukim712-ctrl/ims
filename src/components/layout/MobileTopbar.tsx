@@ -47,7 +47,7 @@ export function MobileTopbar() {
               );
               if (branch) setSelectedBranch(branch);
             }}
-            className="h-9 w-[108px] px-2 text-[11px]"
+            className="h-9 w-[108px] pl-2 pr-7 text-[11px]"
           >
             {branches.map((branch) => (
               <option key={branch.id} value={branch.id}>
