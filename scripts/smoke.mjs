@@ -331,7 +331,7 @@ await page.getByRole('dialog').getByRole('button', { name: 'Add drink' }).click(
 await page.getByText('Vanilla Cold Brew added').waitFor();
 
 await page.getByRole('button', { name: 'Add recipe' }).click();
-await page.getByRole('dialog').getByLabel('Drink').selectOption({ label: 'Vanilla Cold Brew — Coffee — $5.75' });
+await page.getByRole('dialog').getByLabel('Drink').selectOption({ label: 'Vanilla Cold Brew — Coffee — ₱5.75' });
 await page.getByRole('dialog').getByLabel('Ingredient 1', { exact: true }).selectOption('i1');
 await page.getByRole('dialog').getByLabel('Quantity 1', { exact: true }).fill('18');
 await page.getByRole('dialog').getByRole('button', { name: 'Add recipe' }).click();

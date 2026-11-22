@@ -32,9 +32,9 @@ export function convertMassUnit(
 
 export function formatMoney(value: number): string {
   const digits = Math.abs(value) < 1 ? 3 : 2;
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-PH', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'PHP',
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   }).format(Number.isFinite(value) ? value : 0);

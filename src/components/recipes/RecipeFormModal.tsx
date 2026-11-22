@@ -12,6 +12,7 @@ import { useIngredients } from '@/hooks/useIngredients';
 import { useSaveRecipe } from '@/hooks/useRecipes';
 import { DRINK_CATEGORIES } from '@/lib/constants';
 import { getErrorMessage } from '@/lib/errors';
+import { formatMoney } from '@/lib/format';
 import { recipeSchema, type RecipeFormValues } from '@/validation/recipe.schema';
 import type { DrinkWithRecipe } from '@/types/domain';
 
@@ -119,7 +120,7 @@ export function RecipeFormModal({ open, onClose, drink, drinks }: RecipeFormModa
             >
               {drinks.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} — {item.category} — ${item.price.toFixed(2)}
+                  {item.name} — {item.category} — {formatMoney(item.price)}
                 </option>
               ))}
             </Select>
