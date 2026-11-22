@@ -118,8 +118,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         selectRef.current = node;
         if (typeof forwardedRef === "function") forwardedRef(node);
         else if (forwardedRef) forwardedRef.current = node;
+        if (node && value === undefined) setUncontrolledValue(node.value);
       },
-      [forwardedRef],
+      [forwardedRef, value],
     );
 
     useEffect(() => () => window.clearTimeout(typeaheadTimer.current), []);

@@ -485,6 +485,10 @@ await page.getByRole('dialog').getByRole('button', { name: 'Add recipe' }).click
 await page.getByText('Vanilla Cold Brew recipe added').waitFor();
 await page.getByRole('button', { name: 'Edit Vanilla Cold Brew' }).click();
 await page.getByRole('heading', { name: 'Edit recipe' }).waitFor();
+const editIngredient = page.getByRole('dialog').getByRole('combobox', { name: 'Ingredient 1' });
+if (!(await editIngredient.innerText()).includes('Espresso Beans')) {
+  throw new Error('Edit recipe ingredient selection was not prefilled');
+}
 await page.getByLabel('Drink image').setInputFiles({
   name: 'vanilla-cold-brew-edit.png',
   mimeType: 'image/png',
