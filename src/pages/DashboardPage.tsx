@@ -34,7 +34,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow={formatDate()}
-        title="Good day, knee-gas!"
+        title="Good day, brew-rats!"
         description="A quick look at stock health, low-stock alerts and today’s inventory activity."
         actions={
           <>
