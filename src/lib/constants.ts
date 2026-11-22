@@ -19,6 +19,8 @@ export const STOCK_LOG_LABELS: Record<StockLogType, string> = {
   usage: 'Daily usage',
   spoilage: 'Spoilage',
   adjustment: 'Adjustment',
+  transfer_out: 'Transfer out',
+  transfer_in: 'Transfer in',
 };
 
 export const STOCK_LOG_TYPES: StockLogType[] = [
@@ -26,4 +28,6 @@ export const STOCK_LOG_TYPES: StockLogType[] = [
   'usage',
   'spoilage',
   'adjustment',
+  'transfer_out',
+  'transfer_in',
 ];

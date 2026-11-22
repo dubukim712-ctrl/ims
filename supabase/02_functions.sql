@@ -3,6 +3,7 @@
 
 -- Atomically add a delivery to stock and write an audit log.
 create or replace function public.stock_in_ingredient(
+  p_branch_id uuid,
   p_ingredient_id uuid,
   p_quantity numeric,
   p_supplier text default null,
@@ -15,6 +16,7 @@ set search_path = public
 as $$
 declare
   v_ingredient public.ingredients%rowtype;
+  v_inventory public.branch_inventory%rowtype;
   v_log public.stock_logs%rowtype;
 begin
   if p_quantity is null or p_quantity <= 0 then
@@ -30,22 +32,38 @@ begin
     raise exception 'Ingredient not found';
   end if;
 
-  update public.ingredients
+  select * into v_inventory
+    from public.branch_inventory
+   where branch_id = p_branch_id
+     and ingredient_id = p_ingredient_id
+   for update;
+
+  if not found then
+    raise exception 'Ingredient is not available in this branch';
+  end if;
+
+  update public.branch_inventory
      set current_stock = current_stock + p_quantity,
-         supplier = coalesce(nullif(trim(p_supplier), ''), supplier),
+         updated_at = now()
+   where branch_id = p_branch_id
+     and ingredient_id = p_ingredient_id;
+
+  update public.ingredients
+     set supplier = coalesce(nullif(trim(p_supplier), ''), supplier),
          updated_at = now()
    where id = p_ingredient_id;
 
   insert into public.stock_logs (
-    ingredient_id, change_amount, type, note, supplier, previous_stock, new_stock
+    branch_id, ingredient_id, change_amount, type, note, supplier, previous_stock, new_stock
   ) values (
+    p_branch_id,
     p_ingredient_id,
     p_quantity,
     'stock_in',
     nullif(trim(p_note), ''),
     nullif(trim(p_supplier), ''),
-    v_ingredient.current_stock,
-    v_ingredient.current_stock + p_quantity
+    v_inventory.current_stock,
+    v_inventory.current_stock + p_quantity
   )
   returning * into v_log;
 
@@ -55,6 +73,7 @@ $$;
 
 -- Atomically apply a spoilage write-off or a signed stock adjustment.
 create or replace function public.adjust_ingredient_stock(
+  p_branch_id uuid,
   p_ingredient_id uuid,
   p_change numeric,
   p_type text,
@@ -67,6 +86,7 @@ set search_path = public
 as $$
 declare
   v_ingredient public.ingredients%rowtype;
+  v_inventory public.branch_inventory%rowtype;
   v_log public.stock_logs%rowtype;
   v_message text;
 begin
@@ -87,31 +107,43 @@ begin
     raise exception 'Ingredient not found';
   end if;
 
-  if v_ingredient.current_stock + p_change < 0 then
+  select * into v_inventory
+    from public.branch_inventory
+   where branch_id = p_branch_id
+     and ingredient_id = p_ingredient_id
+   for update;
+
+  if not found then
+    raise exception 'Ingredient is not available in this branch';
+  end if;
+
+  if v_inventory.current_stock + p_change < 0 then
     v_message := format(
       'Not enough stock: %s has %s %s, cannot apply %s',
       v_ingredient.name,
-      v_ingredient.current_stock,
+      v_inventory.current_stock,
       v_ingredient.unit,
       p_change
     );
     raise exception '%', v_message;
   end if;
 
-  update public.ingredients
+  update public.branch_inventory
      set current_stock = current_stock + p_change,
          updated_at = now()
-   where id = p_ingredient_id;
+   where branch_id = p_branch_id
+     and ingredient_id = p_ingredient_id;
 
   insert into public.stock_logs (
-    ingredient_id, change_amount, type, note, previous_stock, new_stock
+    branch_id, ingredient_id, change_amount, type, note, previous_stock, new_stock
   ) values (
+    p_branch_id,
     p_ingredient_id,
     p_change,
     p_type,
     nullif(trim(p_note), ''),
-    v_ingredient.current_stock,
-    v_ingredient.current_stock + p_change
+    v_inventory.current_stock,
+    v_inventory.current_stock + p_change
   )
   returning * into v_log;
 
@@ -120,7 +152,7 @@ end;
 $$;
 
 -- Bulk "Cups sold today": deducts every recipe ingredient in one transaction.
-create or replace function public.log_daily_drink_usage(p_items jsonb)
+create or replace function public.log_daily_drink_usage(p_branch_id uuid, p_items jsonb)
 returns jsonb
 language plpgsql
 security definer
@@ -131,6 +163,7 @@ declare
   v_drink public.drinks%rowtype;
   v_recipe record;
   v_ingredient public.ingredients%rowtype;
+  v_inventory public.branch_inventory%rowtype;
   v_cups integer;
   v_required numeric(12, 2);
   v_drinks_logged integer := 0;
@@ -184,28 +217,39 @@ begin
         raise exception '%', v_message;
       end if;
 
-      if v_ingredient.current_stock < v_required then
+      select * into v_inventory
+        from public.branch_inventory
+       where branch_id = p_branch_id
+         and ingredient_id = v_recipe.ingredient_id
+       for update;
+
+      if not found then
+        raise exception 'Ingredient is not available in this branch';
+      end if;
+
+      if v_inventory.current_stock < v_required then
         v_message := format(
           'Not enough %s for %s cups of %s: need %s %s, have %s %s',
           v_ingredient.name, v_cups, v_drink.name,
           v_required, v_ingredient.unit,
-          v_ingredient.current_stock, v_ingredient.unit
+          v_inventory.current_stock, v_ingredient.unit
         );
         raise exception '%', v_message;
       end if;
 
-      update public.ingredients
+      update public.branch_inventory
          set current_stock = current_stock - v_required,
              updated_at = now()
-       where id = v_ingredient.id;
+       where branch_id = p_branch_id
+         and ingredient_id = v_ingredient.id;
 
       insert into public.stock_logs (
-        ingredient_id, drink_id, change_amount, type, note,
+        branch_id, ingredient_id, drink_id, change_amount, type, note,
         previous_stock, new_stock, cups_sold
       ) values (
-        v_ingredient.id, v_drink.id, -v_required, 'usage',
+        p_branch_id, v_ingredient.id, v_drink.id, -v_required, 'usage',
         format('%s cups of %s', v_cups, v_drink.name),
-        v_ingredient.current_stock, v_ingredient.current_stock - v_required, v_cups
+        v_inventory.current_stock, v_inventory.current_stock - v_required, v_cups
       );
 
       v_ingredients_deducted := v_ingredients_deducted + 1;
@@ -225,9 +269,117 @@ begin
 end;
 $$;
 
-grant execute on function public.stock_in_ingredient(uuid, numeric, text, text) to anon, authenticated;
-grant execute on function public.adjust_ingredient_stock(uuid, numeric, text, text) to anon, authenticated;
-grant execute on function public.log_daily_drink_usage(jsonb) to anon, authenticated;
+grant execute on function public.stock_in_ingredient(uuid, uuid, numeric, text, text) to anon, authenticated;
+grant execute on function public.adjust_ingredient_stock(uuid, uuid, numeric, text, text) to anon, authenticated;
+grant execute on function public.log_daily_drink_usage(uuid, jsonb) to anon, authenticated;
+
+create or replace function public.transfer_stock(
+  p_from_branch_id uuid,
+  p_to_branch_id uuid,
+  p_ingredient_id uuid,
+  p_quantity numeric,
+  p_note text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_from public.branch_inventory%rowtype;
+  v_to public.branch_inventory%rowtype;
+  v_from_name text;
+  v_to_name text;
+  v_out_note text;
+  v_in_note text;
+begin
+  if p_from_branch_id is null or p_to_branch_id is null then
+    raise exception 'Choose both a source and destination branch';
+  end if;
+
+  if p_from_branch_id = p_to_branch_id then
+    raise exception 'Source and destination branches must be different';
+  end if;
+
+  if p_quantity is null or p_quantity <= 0 then
+    raise exception 'Transfer quantity must be greater than zero';
+  end if;
+
+  select name into v_from_name from public.branches where id = p_from_branch_id;
+  select name into v_to_name from public.branches where id = p_to_branch_id;
+  if v_from_name is null or v_to_name is null then
+    raise exception 'One or both branches were not found';
+  end if;
+
+  v_out_note := case
+    when btrim(coalesce(p_note, '')) = '' then 'Transferred to ' || v_to_name
+    else btrim(p_note) || ' — Transferred to ' || v_to_name
+  end;
+  v_in_note := case
+    when btrim(coalesce(p_note, '')) = '' then 'Transferred from ' || v_from_name
+    else btrim(p_note) || ' — Transferred from ' || v_from_name
+  end;
+
+  select * into v_from
+    from public.branch_inventory
+   where branch_id = p_from_branch_id
+     and ingredient_id = p_ingredient_id
+   for update;
+  if not found then
+    raise exception 'Ingredient is not available in the source branch';
+  end if;
+
+  if v_from.current_stock < p_quantity then
+    raise exception 'Not enough stock in %: need %, have %',
+      v_from_name, p_quantity, v_from.current_stock;
+  end if;
+
+  select * into v_to
+    from public.branch_inventory
+   where branch_id = p_to_branch_id
+     and ingredient_id = p_ingredient_id
+   for update;
+  if not found then
+    raise exception 'Ingredient is not available in the destination branch';
+  end if;
+
+  update public.branch_inventory
+     set current_stock = current_stock - p_quantity,
+         updated_at = now()
+   where branch_id = p_from_branch_id
+     and ingredient_id = p_ingredient_id;
+
+  update public.branch_inventory
+     set current_stock = current_stock + p_quantity,
+         updated_at = now()
+   where branch_id = p_to_branch_id
+     and ingredient_id = p_ingredient_id;
+
+  insert into public.stock_logs (
+    branch_id, ingredient_id, change_amount, type, note, previous_stock, new_stock
+  ) values (
+    p_from_branch_id, p_ingredient_id, -p_quantity, 'transfer_out',
+    v_out_note,
+    v_from.current_stock, v_from.current_stock - p_quantity
+  );
+
+  insert into public.stock_logs (
+    branch_id, ingredient_id, change_amount, type, note, previous_stock, new_stock
+  ) values (
+    p_to_branch_id, p_ingredient_id, p_quantity, 'transfer_in',
+    v_in_note,
+    v_to.current_stock, v_to.current_stock + p_quantity
+  );
+
+  return jsonb_build_object(
+    'quantity', p_quantity,
+    'from_branch', v_from_name,
+    'to_branch', v_to_name
+  );
+end;
+$$;
+
+grant execute on function public.transfer_stock(uuid, uuid, uuid, numeric, text) to anon, authenticated;
 
 -- Create or replace a drink and its complete recipe atomically.
 create or replace function public.upsert_recipe(

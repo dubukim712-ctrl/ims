@@ -6,12 +6,15 @@ import { Toaster } from 'sonner';
 import App from '@/App';
 import { queryClient } from '@/lib/queryClient';
 import '@/index.css';
+import { BranchProvider } from '@/context/BranchContext';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <App />
+        <BranchProvider>
+          <App />
+        </BranchProvider>
         <Toaster
           richColors
           closeButton

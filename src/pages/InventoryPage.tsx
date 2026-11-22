@@ -10,6 +10,7 @@ import { IngredientCard } from '@/components/inventory/IngredientCard';
 import { useIngredients } from '@/hooks/useIngredients';
 import { getErrorMessage } from '@/lib/errors';
 import type { Ingredient } from '@/types/domain';
+import { TransferStockModal } from '@/components/stock/TransferStockModal';
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; ingredient: Ingredient } | null;
 
@@ -19,6 +20,7 @@ export function InventoryPage() {
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState<StockFilter>('all');
   const [modal, setModal] = useState<ModalState>(null);
+  const [transferIngredientId, setTransferIngredientId] = useState<string | 'open' | null>(null);
   const deferredSearch = useDeferredValue(search);
 
   const ingredients = ingredientsQuery.data ?? [];
@@ -67,10 +69,15 @@ export function InventoryPage() {
         title="Inventory"
         description="Search, filter and maintain every ingredient used behind the counter."
         actions={
-          <Button onClick={() => setModal({ mode: 'create' })}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            Add ingredient
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setTransferIngredientId('open')}>
+              Transfer stock
+            </Button>
+            <Button onClick={() => setModal({ mode: 'create' })}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Add ingredient
+            </Button>
+          </div>
         }
       />
 
@@ -142,6 +149,7 @@ export function InventoryPage() {
               <IngredientTable
                 ingredients={filtered}
                 onEdit={(ingredient) => setModal({ mode: 'edit', ingredient })}
+                onTransfer={(ingredient) => setTransferIngredientId(ingredient.id)}
               />
               <div className="grid gap-3 sm:grid-cols-2 md:hidden">
                 {filtered.map((ingredient) => (
@@ -149,6 +157,7 @@ export function InventoryPage() {
                     key={ingredient.id}
                     ingredient={ingredient}
                     onEdit={(item) => setModal({ mode: 'edit', ingredient: item })}
+                    onTransfer={(item) => setTransferIngredientId(item.id)}
                   />
                 ))}
               </div>
@@ -163,6 +172,14 @@ export function InventoryPage() {
           open
           onClose={() => setModal(null)}
           ingredient={modal.mode === 'edit' ? modal.ingredient : null}
+        />
+      ) : null}
+
+      {transferIngredientId ? (
+        <TransferStockModal
+          open
+          onClose={() => setTransferIngredientId(null)}
+          ingredientId={transferIngredientId === 'open' ? undefined : transferIngredientId}
         />
       ) : null}
     </div>

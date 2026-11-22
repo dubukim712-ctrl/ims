@@ -7,11 +7,15 @@ alter table public.ingredients enable row level security;
 alter table public.drinks enable row level security;
 alter table public.recipe_items enable row level security;
 alter table public.stock_logs enable row level security;
+alter table public.branches enable row level security;
+alter table public.branch_inventory enable row level security;
 
 drop policy if exists "brewstock full access" on public.ingredients;
 drop policy if exists "brewstock full access" on public.drinks;
 drop policy if exists "brewstock full access" on public.recipe_items;
 drop policy if exists "brewstock full access" on public.stock_logs;
+drop policy if exists "brewstock full access" on public.branches;
+drop policy if exists "brewstock full access" on public.branch_inventory;
 
 create policy "brewstock full access" on public.ingredients
   for all to anon, authenticated using (true) with check (true);
@@ -25,11 +29,19 @@ create policy "brewstock full access" on public.recipe_items
 create policy "brewstock full access" on public.stock_logs
   for all to anon, authenticated using (true) with check (true);
 
+create policy "brewstock full access" on public.branches
+  for all to anon, authenticated using (true) with check (true);
+
+create policy "brewstock full access" on public.branch_inventory
+  for all to anon, authenticated using (true) with check (true);
+
 grant usage on schema public to anon, authenticated;
 grant select, insert, update, delete on public.ingredients to anon, authenticated;
 grant select, insert, update, delete on public.drinks to anon, authenticated;
 grant select, insert, update, delete on public.recipe_items to anon, authenticated;
 grant select, insert, update, delete on public.stock_logs to anon, authenticated;
+grant select, insert, update, delete on public.branches to anon, authenticated;
+grant select, insert, update, delete on public.branch_inventory to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Demo data (safe to remove if you already have your own inventory)

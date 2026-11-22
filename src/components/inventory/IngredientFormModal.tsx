@@ -193,7 +193,11 @@ export function IngredientFormModal({ open, onClose, ingredient }: IngredientFor
             label="Cost per unit"
             htmlFor="cost_per_unit"
             error={errors.cost_per_unit?.message}
-            hint="Used to estimate stock value."
+            hint={
+              unit === 'g' || unit === 'kg' || unit === 'ml'
+                ? `Cost for 1 ${unit}; used to calculate stock value.`
+                : 'Cost for 1 piece; used to calculate stock value.'
+            }
             required
           >
             <Input

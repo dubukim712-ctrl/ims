@@ -1,10 +1,16 @@
 import { NavLink, Link } from 'react-router-dom';
-import { ArrowRight, Coffee, TriangleAlert } from 'lucide-react';
+import { ArrowRight, Coffee, Settings, TriangleAlert } from 'lucide-react';
 import { NAV_ITEMS } from '@/components/layout/navigation';
 import { useIngredients } from '@/hooks/useIngredients';
 import { cn } from '@/lib/cn';
+import { useState } from 'react';
+import { useBranches } from '@/context/BranchContext';
+import { BranchManagerModal } from '@/components/layout/BranchManagerModal';
+import { Select } from '@/components/ui/Select';
 
 export function Sidebar() {
+  const { branches, selectedBranch, setSelectedBranch } = useBranches();
+  const [branchModal, setBranchModal] = useState<'add' | 'edit' | null>(null);
   const { data: ingredients } = useIngredients();
   const lowCount = (ingredients ?? []).filter(
     (item) => item.current_stock <= item.reorder_level,
@@ -12,15 +18,56 @@ export function Sidebar() {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-espresso-900 text-cream-100 lg:flex">
-      <div className="flex items-center gap-3 px-5 py-6">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-caramel-500 text-espresso-900 shadow-sm">
-          <Coffee className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="font-display text-xl leading-none text-cream-50">BrewStock</p>
-          <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-espresso-300">
-            Coffee &amp; milk tea
+      <div className="shrink-0 px-5 pb-4 pt-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-caramel-500 text-espresso-900 shadow-sm">
+            <Coffee className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="font-display text-xl leading-none text-cream-50">BrewStock</p>
+            <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-espresso-300">
+              Coffee &amp; milk tea
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 space-y-2">
+          <p className="px-1 text-[9px] font-bold uppercase tracking-[0.16em] text-espresso-300">
+            Active branch
           </p>
+          <Select
+            aria-label="Active branch"
+            value={selectedBranch?.id ?? ''}
+            onChange={(event) => {
+              const branch = branches.find((item) => item.id === event.target.value);
+              if (branch) setSelectedBranch(branch);
+            }}
+            className="border-white/10 bg-white/10 text-cream-50"
+          >
+            {branches.map((branch) => (
+              <option key={branch.id} value={branch.id} className="text-espresso-900">
+                {branch.name}
+              </option>
+            ))}
+          </Select>
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              type="button"
+              onClick={() => setBranchModal('add')}
+              className="flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[11px] font-semibold text-espresso-200 hover:bg-white/5 hover:text-cream-50"
+            >
+              <Settings className="h-3 w-3" aria-hidden="true" />
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setBranchModal('edit')}
+              disabled={!selectedBranch}
+              className="rounded-lg px-2 py-2 text-[11px] font-semibold text-espresso-200 hover:bg-white/5 hover:text-cream-50 disabled:opacity-50"
+            >
+              Edit selected
+            </button>
+          </div>
         </div>
       </div>
 
@@ -98,6 +145,13 @@ export function Sidebar() {
           </div>
         </div>
       </div>
+      {branchModal ? (
+        <BranchManagerModal
+          open
+          onClose={() => setBranchModal(null)}
+          branch={branchModal === 'edit' ? selectedBranch : null}
+        />
+      ) : null}
     </aside>
   );
 }

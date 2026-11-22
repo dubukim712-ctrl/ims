@@ -9,9 +9,10 @@ import type { Ingredient } from '@/types/domain';
 interface IngredientCardProps {
   ingredient: Ingredient;
   onEdit: (ingredient: Ingredient) => void;
+  onTransfer?: (ingredient: Ingredient) => void;
 }
 
-export function IngredientCard({ ingredient, onEdit }: IngredientCardProps) {
+export function IngredientCard({ ingredient, onEdit, onTransfer }: IngredientCardProps) {
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between gap-3">
@@ -33,10 +34,17 @@ export function IngredientCard({ ingredient, onEdit }: IngredientCardProps) {
             Reorder at {formatQuantity(ingredient.reorder_level, ingredient.unit)}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => onEdit(ingredient)}>
-          <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-          Edit
-        </Button>
+        <div className="flex gap-1.5">
+          {onTransfer ? (
+            <Button variant="outline" size="sm" onClick={() => onTransfer(ingredient)}>
+              Transfer
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => onEdit(ingredient)}>
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       <div className="mt-3">

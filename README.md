@@ -42,16 +42,19 @@ The seed file adds 15 demo ingredients, 8 drinks, and their recipes. Remove that
 
 Tables used by the app:
 
-- `ingredients` — `name`, `category`, `unit` (`g`, `kg`, `ml`, or `pcs`), `current_stock`, `reorder_level`, `cost_per_unit`, `supplier`, `is_active`
+- `branches` — `name`, `location`, `is_active`
+- `branch_inventory` — `branch_id`, `ingredient_id`, `current_stock`, `reorder_level`
+- `ingredients` — `name`, `category`, `unit` (`g`, `kg`, `ml`, or `pcs`), `cost_per_unit`, `supplier`, `is_active`
 - `drinks` — `name`, `category`, `price`, `is_active`
 - `recipe_items` — `drink_id`, `ingredient_id`, `quantity` (amount per cup)
-- `stock_logs` — `ingredient_id`, `drink_id`, `change_amount`, `type`, `note`, `supplier`, `previous_stock`, `new_stock`, `cups_sold`
+- `stock_logs` — `branch_id`, `ingredient_id`, `drink_id`, `change_amount`, `type`, `note`, `supplier`, `previous_stock`, `new_stock`, `cups_sold`
 
 RPCs (all transactional, defined in `02_functions.sql`):
 
-- `stock_in_ingredient(p_ingredient_id, p_quantity, p_supplier, p_note)`
-- `adjust_ingredient_stock(p_ingredient_id, p_change, p_type, p_note)`
-- `log_daily_drink_usage(p_items jsonb)` — `p_items` is `[{ "drink_id": "...", "cups_sold": 12 }]`
+- `stock_in_ingredient(p_branch_id, p_ingredient_id, p_quantity, p_supplier, p_note)`
+- `adjust_ingredient_stock(p_branch_id, p_ingredient_id, p_change, p_type, p_note)`
+- `log_daily_drink_usage(p_branch_id, p_items jsonb)` — `p_items` is `[{ "drink_id": "...", "cups_sold": 12 }]`
+- `transfer_stock(p_from_branch_id, p_to_branch_id, p_ingredient_id, p_quantity, p_note)`
 - `upsert_recipe(p_drink_id, p_name, p_category, p_price, p_items)` — creates or replaces a drink and its recipe atomically
 - `upsert_drink(p_drink_id, p_name, p_category, p_price)` — creates or edits a drink independently of its recipe
 

@@ -9,9 +9,10 @@ import type { Ingredient } from '@/types/domain';
 interface IngredientTableProps {
   ingredients: Ingredient[];
   onEdit: (ingredient: Ingredient) => void;
+  onTransfer?: (ingredient: Ingredient) => void;
 }
 
-export function IngredientTable({ ingredients, onEdit }: IngredientTableProps) {
+export function IngredientTable({ ingredients, onEdit, onTransfer }: IngredientTableProps) {
   return (
     <Card className="hidden overflow-hidden md:block">
       <div className="overflow-x-auto">
@@ -57,14 +58,25 @@ export function IngredientTable({ ingredients, onEdit }: IngredientTableProps) {
                   <span className="text-espresso-300">/{ingredient.unit}</span>
                 </td>
                 <td className="px-5 py-3.5 text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Edit ${ingredient.name}`}
-                    onClick={() => onEdit(ingredient)}
-                  >
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
-                  </Button>
+                  <div className="flex justify-end gap-1">
+                    {onTransfer ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onTransfer(ingredient)}
+                      >
+                        Transfer
+                      </Button>
+                    ) : null}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Edit ${ingredient.name}`}
+                      onClick={() => onEdit(ingredient)}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

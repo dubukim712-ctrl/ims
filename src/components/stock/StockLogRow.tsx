@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, CupSoda, PackagePlus, SlidersHorizontal, Trash2, type LucideIcon } from 'lucide-react';
+import { ArrowDownRight, ArrowLeftRight, ArrowUpRight, CupSoda, PackagePlus, SlidersHorizontal, Trash2, type LucideIcon } from 'lucide-react';
 import { Badge, type BadgeVariant } from '@/components/ui/Badge';
 import { formatDateTime, formatQuantity } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -31,6 +31,18 @@ const typeConfig: Record<
     variant: 'neutral',
     icon: SlidersHorizontal,
     iconClass: 'bg-espresso-100 text-espresso-700',
+  },
+  transfer_out: {
+    label: 'Transfer out',
+    variant: 'honey',
+    icon: ArrowLeftRight,
+    iconClass: 'bg-honey-100 text-honey-700',
+  },
+  transfer_in: {
+    label: 'Transfer in',
+    variant: 'matcha',
+    icon: ArrowLeftRight,
+    iconClass: 'bg-matcha-100 text-matcha-700',
   },
 };
 

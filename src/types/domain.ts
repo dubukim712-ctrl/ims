@@ -3,7 +3,30 @@ export type Unit = 'g' | 'kg' | 'ml' | 'pcs';
 
 export type StockStatus = 'out' | 'low' | 'healthy';
 
-export type StockLogType = 'stock_in' | 'usage' | 'spoilage' | 'adjustment';
+export type StockLogType =
+  | 'stock_in'
+  | 'usage'
+  | 'spoilage'
+  | 'adjustment'
+  | 'transfer_out'
+  | 'transfer_in';
+
+export interface Branch {
+  id: string;
+  name: string;
+  location: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface BranchInventory {
+  id: string;
+  branch_id: string;
+  ingredient_id: string;
+  current_stock: number;
+  reorder_level: number;
+  updated_at: string;
+}
 
 export interface Ingredient {
   id: string;
@@ -62,6 +85,7 @@ export interface DrinkWithRecipe extends Drink {
 
 export interface StockLog {
   id: string;
+  branch_id: string | null;
   ingredient_id: string;
   drink_id: string | null;
   change_amount: number;

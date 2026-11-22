@@ -7,6 +7,7 @@ import type { CupsSoldItem, DailyUsageResult } from '@/types/domain';
  */
 export async function logDailyDrinkUsage(
   items: CupsSoldItem[],
+  branchId: string,
 ): Promise<DailyUsageResult> {
   const payload = items
     .filter((item) => item.cups_sold > 0)
@@ -20,6 +21,7 @@ export async function logDailyDrinkUsage(
   }
 
   const { data, error } = await supabase.rpc('log_daily_drink_usage', {
+    p_branch_id: branchId,
     p_items: payload,
   });
 

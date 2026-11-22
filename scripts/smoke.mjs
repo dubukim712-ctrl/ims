@@ -24,6 +24,23 @@ const ingredients = [
   ingredient('i8', 'Oat Milk', 'Dairy', 'ml', 1500, 1000, 0.025, 'Valley Dairy'),
 ];
 
+const branches = [
+  { id: 'b-main', name: 'Main Branch', location: null, is_active: true, created_at: now },
+  { id: 'b-north', name: 'North Branch', location: 'North', is_active: true, created_at: now },
+];
+const branchInventory = new Map();
+for (const branch of branches) {
+  for (const item of ingredients) {
+    branchInventory.set(`${branch.id}:${item.id}`, {
+      branch_id: branch.id,
+      ingredient_id: item.id,
+      current_stock: branch.id === 'b-main' ? item.current_stock : Math.floor(item.current_stock * 0.4),
+      reorder_level: item.reorder_level,
+      updated_at: now,
+    });
+  }
+}
+
 const byId = Object.fromEntries(ingredients.map((item) => [item.id, item]));
 const recipeIngredient = (id) => {
   const item = byId[id];
@@ -55,7 +72,7 @@ for (const drink of drinks) {
 }
 
 const log = (id, ingredientId, change, type, note, supplier, previous, next, minutes, drinkId = null, cups = null) => ({
-  id, ingredient_id: ingredientId, drink_id: drinkId, change_amount: change, type, note, supplier,
+  id, branch_id: 'b-main', ingredient_id: ingredientId, drink_id: drinkId, change_amount: change, type, note, supplier,
   previous_stock: previous, new_stock: next, cups_sold: cups,
   created_at: new Date(Date.now() - minutes * 60000).toISOString(),
   ingredient: { id: ingredientId, name: byId[ingredientId].name, unit: byId[ingredientId].unit },
@@ -105,23 +122,45 @@ async function installMock(page) {
 
       if (fn === 'stock_in_ingredient') {
         const item = byId[payload.p_ingredient_id];
-        const previous = item.current_stock;
-        item.current_stock += Number(payload.p_quantity);
+        const key = `${payload.p_branch_id}:${item.id}`;
+        const inventory = branchInventory.get(key);
+        const previous = inventory.current_stock;
+        inventory.current_stock += Number(payload.p_quantity);
+        item.current_stock = inventory.current_stock;
         if (payload.p_supplier) item.supplier = payload.p_supplier;
         const result = log('l-new', item.id, Number(payload.p_quantity), 'stock_in',
           payload.p_note || null, payload.p_supplier || null, previous, item.current_stock, 0);
+        result.branch_id = payload.p_branch_id;
         stockLogs.unshift(result);
         return json(route, result);
       }
 
       if (fn === 'adjust_ingredient_stock') {
         const item = byId[payload.p_ingredient_id];
-        const previous = item.current_stock;
-        item.current_stock += Number(payload.p_change);
+        const key = `${payload.p_branch_id}:${item.id}`;
+        const inventory = branchInventory.get(key);
+        const previous = inventory.current_stock;
+        inventory.current_stock += Number(payload.p_change);
+        item.current_stock = inventory.current_stock;
         const result = log('l-adj', item.id, Number(payload.p_change), payload.p_type,
           payload.p_note || null, null, previous, item.current_stock, 0);
+        result.branch_id = payload.p_branch_id;
         stockLogs.unshift(result);
         return json(route, result);
+      }
+
+      if (fn === 'transfer_stock') {
+        const fromKey = `${payload.p_from_branch_id}:${payload.p_ingredient_id}`;
+        const toKey = `${payload.p_to_branch_id}:${payload.p_ingredient_id}`;
+        const from = branchInventory.get(fromKey);
+        const to = branchInventory.get(toKey);
+        const quantity = Number(payload.p_quantity);
+        if (!from || !to || from.current_stock < quantity) {
+          return route.fulfill({ status: 400, headers: cors, body: JSON.stringify({ message: 'Not enough stock' }) });
+        }
+        from.current_stock -= quantity;
+        to.current_stock += quantity;
+        return json(route, { quantity, from_branch: 'Source', to_branch: 'Destination' });
       }
 
       if (fn === 'log_daily_drink_usage') {
@@ -133,6 +172,11 @@ async function installMock(page) {
           if (drink && item.cups_sold > 0) {
             drinksLogged += 1;
             ingredientsDeducted += drink.recipe_items.length;
+            for (const recipe of drink.recipe_items) {
+              const key = `${payload.p_branch_id}:${recipe.ingredient_id}`;
+              const inventory = branchInventory.get(key);
+              if (inventory) inventory.current_stock -= recipe.quantity * item.cups_sold;
+            }
           }
         }
         return json(route, {
@@ -184,7 +228,18 @@ async function installMock(page) {
     }
 
     if (endpoint === 'ingredients') {
-      if (method === 'GET') return json(route, ingredients);
+      if (method === 'GET') {
+        const branchId = url.searchParams.get('branch_inventory.branch_id')?.replace('eq.', '') ?? 'b-main';
+        return json(route, ingredients.map((item) => ({
+          ...item,
+          branch_inventory: [branchInventory.get(`${branchId}:${item.id}`) ?? {
+            branch_id: branchId,
+            ingredient_id: item.id,
+            current_stock: 0,
+            reorder_level: item.reorder_level,
+          }],
+        })));
+      }
       if (method === 'POST') {
         const payload = request.postDataJSON();
         const created = {
@@ -194,6 +249,14 @@ async function installMock(page) {
         };
         ingredients.push(created);
         byId[created.id] = created;
+        for (const branch of branches) {
+          branchInventory.set(`${branch.id}:${created.id}`, {
+            branch_id: branch.id,
+            ingredient_id: created.id,
+            current_stock: branch.id === 'b-main' ? payload.current_stock : 0,
+            reorder_level: payload.reorder_level,
+          });
+        }
         return json(route, wantsObject ? created : [created]);
       }
       if (method === 'PATCH') {
@@ -208,12 +271,52 @@ async function installMock(page) {
     if (endpoint === 'stock_logs') {
       if (method === 'GET') {
         const type = url.searchParams.get('type');
+        const branchId = url.searchParams.get('branch_id');
         let rows = stockLogs;
         if (type) rows = rows.filter((row) => row.type === type.replace('eq.', ''));
+        if (branchId) rows = rows.filter((row) => row.branch_id === branchId.replace('eq.', ''));
         const limit = Number(url.searchParams.get('limit') ?? 1000);
         const offset = Number((url.searchParams.get('offset') ?? '0').replace('eq.', ''));
         const paged = rows.slice(offset, offset + limit);
         return json(route, paged, { 'content-range': `0-${Math.max(paged.length - 1, 0)}/${rows.length}` });
+      }
+    }
+
+    if (endpoint === 'branches') {
+      if (method === 'GET') return json(route, branches);
+      if (method === 'POST') {
+        const payload = request.postDataJSON();
+        const created = {
+          id: `b-${Date.now()}`,
+          name: payload.name,
+          location: payload.location,
+          is_active: payload.is_active,
+          created_at: now,
+        };
+        branches.push(created);
+        return json(route, wantsObject ? created : [created]);
+      }
+      if (method === 'PATCH') {
+        const id = url.searchParams.get('id')?.replace('eq.', '');
+        const payload = request.postDataJSON();
+        const branch = branches.find((item) => item.id === id);
+        if (branch) Object.assign(branch, payload);
+        return json(route, wantsObject ? branch : [branch]);
+      }
+    }
+
+    if (endpoint === 'branch_inventory') {
+      if (method === 'GET') {
+        const branchId = url.searchParams.get('branch_id')?.replace('eq.', '');
+        const rows = [...branchInventory.values()].filter((row) => !branchId || row.branch_id === branchId);
+        return json(route, rows);
+      }
+      if (method === 'POST' || method === 'PATCH') {
+        const payload = request.postDataJSON();
+        const row = Array.isArray(payload) ? payload[0] : payload;
+        const key = `${row.branch_id}:${row.ingredient_id}`;
+        branchInventory.set(key, { ...branchInventory.get(key), ...row });
+        return json(route, wantsObject ? branchInventory.get(key) : [branchInventory.get(key)]);
       }
     }
 
