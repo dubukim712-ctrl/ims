@@ -1,6 +1,6 @@
 import type { StockLogType, Unit } from '@/types/domain';
 
-export const UNITS: Unit[] = ['g', 'ml', 'pcs'];
+export const UNITS: Unit[] = ['g', 'kg', 'ml', 'pcs'];
 
 export const INGREDIENT_CATEGORIES = [
   'Coffee',
@@ -12,7 +12,7 @@ export const INGREDIENT_CATEGORIES = [
   'Other',
 ];
 
-export const DRINK_CATEGORIES = ['Coffee', 'Milk Tea', 'Fruit Tea', 'Other'];
+export const DRINK_CATEGORIES = ['Coffee', 'Milk Tea', 'Fruit Tea', 'Soda', 'Other'];
 
 export const STOCK_LOG_LABELS: Record<StockLogType, string> = {
   stock_in: 'Stock in',

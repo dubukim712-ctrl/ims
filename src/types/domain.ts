@@ -1,5 +1,5 @@
 /** Units supported by the shop. Stock is always displayed in the stored unit. */
-export type Unit = 'g' | 'ml' | 'pcs';
+export type Unit = 'g' | 'kg' | 'ml' | 'pcs';
 
 export type StockStatus = 'out' | 'low' | 'healthy';
 
@@ -89,4 +89,21 @@ export interface CupsSoldItem {
 export interface DailyUsageResult {
   drinks_logged: number;
   ingredients_deducted: number;
+}
+
+export interface DrinkInput {
+  name: string;
+  category: string;
+  price: number;
+}
+
+export interface RecipeInput {
+  drink_id?: string;
+  name: string;
+  category: string;
+  price: number;
+  items: Array<{
+    ingredient_id: string;
+    quantity: number;
+  }>;
 }

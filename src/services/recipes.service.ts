@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase';
-import type { DrinkWithRecipe } from '@/types/domain';
+import type { Drink, DrinkInput, DrinkWithRecipe, RecipeInput } from '@/types/domain';
 
 /**
  * Drinks come back with their recipe and each ingredient's live stock, so the
@@ -23,4 +23,31 @@ export async function listDrinksWithRecipes(): Promise<DrinkWithRecipe[]> {
 
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as DrinkWithRecipe[];
+}
+
+export async function saveRecipe(input: RecipeInput): Promise<void> {
+  const { error } = await supabase.rpc('upsert_recipe', {
+    p_drink_id: input.drink_id ?? null,
+    p_name: input.name.trim(),
+    p_category: input.category.trim(),
+    p_price: input.price,
+    p_items: input.items.map((item) => ({
+      ingredient_id: item.ingredient_id,
+      quantity: item.quantity,
+    })),
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+export async function saveDrink(input: DrinkInput, drinkId?: string): Promise<Drink> {
+  const { data, error } = await supabase.rpc('upsert_drink', {
+    p_drink_id: drinkId ?? null,
+    p_name: input.name.trim(),
+    p_category: input.category.trim(),
+    p_price: input.price,
+  });
+
+  if (error) throw new Error(error.message);
+  return data as Drink;
 }

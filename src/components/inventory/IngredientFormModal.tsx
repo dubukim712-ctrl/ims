@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useMemo, useRef } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { useCreateIngredient, useUpdateIngredient } from '@/hooks/useIngredients';
 import { getErrorMessage } from '@/lib/errors';
 import { INGREDIENT_CATEGORIES, UNITS } from '@/lib/constants';
+import { convertMassUnit } from '@/lib/format';
 import {
   ingredientSchema,
   type IngredientFormValues,
@@ -24,6 +25,7 @@ interface IngredientFormModalProps {
 
 const unitLabels: Record<string, string> = {
   g: 'g — grams',
+  kg: 'kg — kilograms',
   ml: 'ml — milliliters',
   pcs: 'pcs — pieces',
 };
@@ -41,8 +43,11 @@ export function IngredientFormModal({ open, onClose, ingredient }: IngredientFor
   }, [ingredient?.category]);
 
   const {
+    control,
+    getValues,
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<IngredientFormValues>({
     resolver: yupResolver(ingredientSchema),
@@ -56,6 +61,28 @@ export function IngredientFormModal({ open, onClose, ingredient }: IngredientFor
       supplier: ingredient?.supplier ?? '',
     },
   });
+
+  const unit = useWatch({ control, name: 'unit' });
+  const previousUnit = useRef(unit);
+
+  useEffect(() => {
+    const from = previousUnit.current;
+    if (from === unit) return;
+
+    const values = getValues();
+    if ((from === 'g' || from === 'kg') && (unit === 'g' || unit === 'kg')) {
+      setValue('current_stock', convertMassUnit(Number(values.current_stock) || 0, from, unit));
+      setValue('reorder_level', convertMassUnit(Number(values.reorder_level) || 0, from, unit));
+
+      const cost = Number(values.cost_per_unit) || 0;
+      if (from === 'g' && unit === 'kg') {
+        setValue('cost_per_unit', cost * 1000);
+      } else if (from === 'kg' && unit === 'g') {
+        setValue('cost_per_unit', cost / 1000);
+      }
+    }
+    previousUnit.current = unit;
+  }, [getValues, setValue, unit]);
 
   const onSubmit = async (values: IngredientFormValues) => {
     try {
@@ -136,7 +163,7 @@ export function IngredientFormModal({ open, onClose, ingredient }: IngredientFor
             <Input
               id="current_stock"
               type="number"
-              step="0.1"
+              step={unit === 'kg' ? '0.001' : '0.1'}
               min="0"
               invalid={Boolean(errors.current_stock)}
               {...register('current_stock', { valueAsNumber: true })}
@@ -153,7 +180,7 @@ export function IngredientFormModal({ open, onClose, ingredient }: IngredientFor
             <Input
               id="reorder_level"
               type="number"
-              step="0.1"
+              step={unit === 'kg' ? '0.001' : '0.1'}
               min="0"
               invalid={Boolean(errors.reorder_level)}
               {...register('reorder_level', { valueAsNumber: true })}
@@ -172,7 +199,7 @@ export function IngredientFormModal({ open, onClose, ingredient }: IngredientFor
             <Input
               id="cost_per_unit"
               type="number"
-              step="0.001"
+              step={unit === 'kg' ? '0.01' : '0.001'}
               min="0"
               invalid={Boolean(errors.cost_per_unit)}
               {...register('cost_per_unit', { valueAsNumber: true })}

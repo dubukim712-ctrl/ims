@@ -10,7 +10,24 @@ export function formatNumber(value: number): string {
 }
 
 export function formatQuantity(value: number, unit: Unit): string {
+  if (unit === 'g' && value >= 1000) {
+    return `${formatNumber(value / 1000)} kg`;
+  }
+  if (unit === 'kg' && value < 1) {
+    return `${formatNumber(value * 1000)} g`;
+  }
   return `${formatNumber(value)} ${unit}`;
+}
+
+export function convertMassUnit(
+  value: number,
+  from: Unit,
+  to: Unit,
+): number {
+  if (!Number.isFinite(value) || from === to) return value;
+  if (from === 'kg' && to === 'g') return value * 1000;
+  if (from === 'g' && to === 'kg') return value / 1000;
+  return value;
 }
 
 export function formatMoney(value: number): string {

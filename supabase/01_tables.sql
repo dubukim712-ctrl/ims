@@ -17,7 +17,7 @@ create table if not exists public.ingredients (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null default 'Other',
-  unit text not null default 'g' check (unit in ('g', 'ml', 'pcs')),
+  unit text not null default 'g',
   current_stock numeric(12, 2) not null default 0 check (current_stock >= 0),
   reorder_level numeric(12, 2) not null default 0 check (reorder_level >= 0),
   cost_per_unit numeric(12, 4) not null default 0 check (cost_per_unit >= 0),
@@ -26,6 +26,12 @@ create table if not exists public.ingredients (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.ingredients
+  drop constraint if exists ingredients_unit_check;
+alter table public.ingredients
+  add constraint ingredients_unit_check
+  check (unit in ('g', 'kg', 'ml', 'pcs'));
 
 create table if not exists public.drinks (
   id uuid primary key default gen_random_uuid(),

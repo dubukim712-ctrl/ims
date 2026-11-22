@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { BookOpen, ClipboardList, CupSoda, SearchX } from 'lucide-react';
+import { BookOpen, ClipboardList, CupSoda, Plus, SearchX } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Badge } from '@/components/ui/Badge';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -9,15 +9,20 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States';
 import { RecipeCard } from '@/components/recipes/RecipeCard';
 import { AuditLogs } from '@/components/recipes/AuditLogs';
 import { useDrinksWithRecipes } from '@/hooks/useRecipes';
+import { Button } from '@/components/ui/Button';
+import { RecipeFormModal } from '@/components/recipes/RecipeFormModal';
+import { DrinkFormModal } from '@/components/recipes/DrinkFormModal';
 import { getErrorMessage } from '@/lib/errors';
 import { STOCK_LOG_TYPES } from '@/lib/constants';
-import type { StockLogType } from '@/types/domain';
+import type { DrinkWithRecipe, StockLogType } from '@/types/domain';
 
 type PageTab = 'recipes' | 'logs';
 
 export function RecipesAuditPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
+  const [recipeModal, setRecipeModal] = useState<DrinkWithRecipe | 'new' | null>(null);
+  const [drinkModal, setDrinkModal] = useState<DrinkWithRecipe | 'new' | null>(null);
   const tab: PageTab = searchParams.get('tab') === 'logs' ? 'logs' : 'recipes';
   const typeParam = searchParams.get('type');
   const initialType: StockLogType | 'all' = STOCK_LOG_TYPES.includes(typeParam as StockLogType)
@@ -59,6 +64,20 @@ export function RecipesAuditPage() {
       <PageHeader
         title="Recipes & audit logs"
         description="Inspect what goes into every drink, then follow every stock movement in one place."
+        actions={
+          tab === 'recipes' ? (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setDrinkModal('new')}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add drink
+              </Button>
+              <Button onClick={() => setRecipeModal('new')} disabled={drinks.length === 0}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Add recipe
+              </Button>
+            </div>
+          ) : undefined
+        }
       />
 
       <SegmentedTabs
@@ -96,8 +115,14 @@ export function RecipesAuditPage() {
           ) : drinks.length === 0 ? (
             <EmptyState
               title="No drinks yet"
-              description="Create drinks and their recipe items in Supabase to see ingredient breakdowns and cost per cup."
+              description="Add a drink, then assign its ingredient recipe to enable automatic deductions."
               icon={CupSoda}
+              action={
+                <Button size="sm" onClick={() => setDrinkModal('new')}>
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                  Add drink
+                </Button>
+              }
             />
           ) : filteredDrinks.length === 0 ? (
             <EmptyState
@@ -117,7 +142,11 @@ export function RecipesAuditPage() {
           ) : (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filteredDrinks.map((drink) => (
-                <RecipeCard key={drink.id} drink={drink} />
+                <RecipeCard
+                  key={drink.id}
+                  drink={drink}
+                  onEdit={(item) => setRecipeModal(item)}
+                />
               ))}
             </div>
           )}
@@ -125,6 +154,23 @@ export function RecipesAuditPage() {
       ) : (
         <AuditLogs key={initialType} initialType={initialType} />
       )}
+
+      {recipeModal ? (
+        <RecipeFormModal
+          open
+          onClose={() => setRecipeModal(null)}
+          drink={recipeModal === 'new' ? null : recipeModal}
+          drinks={drinks}
+        />
+      ) : null}
+
+      {drinkModal ? (
+        <DrinkFormModal
+          open
+          onClose={() => setDrinkModal(null)}
+          drink={drinkModal === 'new' ? null : drinkModal}
+        />
+      ) : null}
     </div>
   );
 }

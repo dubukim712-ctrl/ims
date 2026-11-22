@@ -42,7 +42,7 @@ The seed file adds 15 demo ingredients, 8 drinks, and their recipes. Remove that
 
 Tables used by the app:
 
-- `ingredients` — `name`, `category`, `unit`, `current_stock`, `reorder_level`, `cost_per_unit`, `supplier`, `is_active`
+- `ingredients` — `name`, `category`, `unit` (`g`, `kg`, `ml`, or `pcs`), `current_stock`, `reorder_level`, `cost_per_unit`, `supplier`, `is_active`
 - `drinks` — `name`, `category`, `price`, `is_active`
 - `recipe_items` — `drink_id`, `ingredient_id`, `quantity` (amount per cup)
 - `stock_logs` — `ingredient_id`, `drink_id`, `change_amount`, `type`, `note`, `supplier`, `previous_stock`, `new_stock`, `cups_sold`
@@ -52,6 +52,8 @@ RPCs (all transactional, defined in `02_functions.sql`):
 - `stock_in_ingredient(p_ingredient_id, p_quantity, p_supplier, p_note)`
 - `adjust_ingredient_stock(p_ingredient_id, p_change, p_type, p_note)`
 - `log_daily_drink_usage(p_items jsonb)` — `p_items` is `[{ "drink_id": "...", "cups_sold": 12 }]`
+- `upsert_recipe(p_drink_id, p_name, p_category, p_price, p_items)` — creates or replaces a drink and its recipe atomically
+- `upsert_drink(p_drink_id, p_name, p_category, p_price)` — creates or edits a drink independently of its recipe
 
 `log_daily_drink_usage` validates stock, rejects drinks without recipes, deducts every recipe ingredient, writes one `usage` stock log per ingredient, and rolls back the whole batch if anything is short.
 
@@ -101,4 +103,4 @@ supabase/           schema, RPCs, policies, seed
 - **Caching:** TanStack Query with 30s `staleTime`, 5min `gcTime`, and `keepPreviousData` for audit pagination.
 - **Validation:** shared Yup schemas in `src/validation`, wired through `yupResolver`.
 - **Security:** `03_policies_seed.sql` grants the anon key full table access so this private tool works without login. Add Supabase Auth and user-scoped RLS policies before exposing it publicly.
-- **No drink/recipe editor:** drinks and recipes are inspected in the app and managed in Supabase (or extend the Recipes page with an editor later).
+- Drink names, categories, prices and recipe ingredient quantities can be added or edited from **Recipes & audit logs**.

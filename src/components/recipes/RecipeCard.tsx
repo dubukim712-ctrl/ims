@@ -2,6 +2,8 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { formatMoney, formatQuantity } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import type { DrinkWithRecipe, RecipeIngredient } from '@/types/domain';
 
 function ingredientStatus(ingredient: RecipeIngredient) {
@@ -12,7 +14,13 @@ function ingredientStatus(ingredient: RecipeIngredient) {
   return { label: 'In stock', dot: 'bg-matcha-500' };
 }
 
-export function RecipeCard({ drink }: { drink: DrinkWithRecipe }) {
+export function RecipeCard({
+  drink,
+  onEdit,
+}: {
+  drink: DrinkWithRecipe;
+  onEdit: (drink: DrinkWithRecipe) => void;
+}) {
   const costPerCup = drink.recipe_items.reduce(
     (total, item) => total + item.quantity * (item.ingredient?.cost_per_unit ?? 0),
     0,
@@ -31,7 +39,18 @@ export function RecipeCard({ drink }: { drink: DrinkWithRecipe }) {
             <Badge variant="neutral">{drink.category}</Badge>
           </div>
         </div>
-        <p className="shrink-0 font-display text-lg text-espresso-900">{formatMoney(drink.price)}</p>
+        <div className="flex shrink-0 items-center gap-2">
+          <p className="font-display text-lg text-espresso-900">{formatMoney(drink.price)}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={`Edit ${drink.name}`}
+            onClick={() => onEdit(drink)}
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-cream-50 p-3 ring-1 ring-inset ring-espresso-100">
@@ -63,7 +82,7 @@ export function RecipeCard({ drink }: { drink: DrinkWithRecipe }) {
 
         {itemCount === 0 ? (
           <p className="mt-2 rounded-xl border border-dashed border-espresso-200 bg-cream-50 px-3 py-4 text-xs text-espresso-300">
-            No recipe items yet. Add them in Supabase to enable automatic deductions.
+            No recipe items yet. Edit this drink to add automatic deductions.
           </p>
         ) : (
           <ul className="mt-1.5 divide-y divide-espresso-100">

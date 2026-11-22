@@ -140,6 +140,46 @@ async function installMock(page) {
           ingredients_deducted: ingredientsDeducted,
         });
       }
+
+      if (fn === 'upsert_drink') {
+        const { p_drink_id: drinkId, p_name: name, p_category: category, p_price: price } = payload;
+        if (drinkId) {
+          const drink = drinks.find((entry) => entry.id === drinkId);
+          if (!drink) return route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ message: 'Drink not found' }) });
+          Object.assign(drink, { name, category, price: Number(price) });
+          return json(route, drink);
+        }
+        const created = {
+          id: `d-${Date.now()}`,
+          name,
+          category,
+          price: Number(price),
+          is_active: true,
+          created_at: now,
+          recipe_items: [],
+        };
+        drinks.push(created);
+        return json(route, created);
+      }
+
+      if (fn === 'upsert_recipe') {
+        const drinkId = payload.p_drink_id;
+        const drink = drinks.find((entry) => entry.id === drinkId);
+        if (!drink) return route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ message: 'Drink not found' }) });
+        Object.assign(drink, {
+          name: payload.p_name,
+          category: payload.p_category,
+          price: Number(payload.p_price),
+        });
+        drink.recipe_items = (payload.p_items ?? []).map((item, index) => ({
+          id: `r-${Date.now()}-${index}`,
+          drink_id: drinkId,
+          ingredient_id: item.ingredient_id,
+          quantity: Number(item.quantity),
+          ingredient: recipeIngredient(item.ingredient_id),
+        }));
+        return json(route, drink);
+      }
       return route.fulfill({ status: 404, headers: cors, body: JSON.stringify({ message: `Unknown RPC ${fn}` }) });
     }
 
@@ -237,10 +277,10 @@ await page.getByRole('button', { name: 'Add ingredient' }).click();
 await page.getByRole('dialog').waitFor();
 await page.locator('#name').fill('Vanilla Syrup');
 await page.locator('#category').selectOption('Syrup');
-await page.locator('#unit').selectOption('ml');
-await page.locator('#current_stock').fill('900');
-await page.locator('#reorder_level').fill('300');
-await page.locator('#cost_per_unit').fill('0.012');
+await page.locator('#unit').selectOption('kg');
+await page.locator('#current_stock').fill('0.9');
+await page.locator('#reorder_level').fill('0.3');
+await page.locator('#cost_per_unit').fill('12');
 await page.locator('#supplier').fill('Sweet Valley');
 await page.getByRole('dialog').getByRole('button', { name: 'Add ingredient' }).click();
 await page.getByText('Vanilla Syrup added to inventory').waitFor();
@@ -282,6 +322,20 @@ await shot('06-spoilage-desktop');
 await page.locator('aside nav a[href="/recipes"]').click();
 await page.getByRole('heading', { name: 'Recipes & audit logs' }).waitFor();
 await page.getByText('Classic Milk Tea').waitFor();
+
+await page.getByRole('button', { name: 'Add drink' }).click();
+await page.getByRole('dialog').getByLabel('Drink name').fill('Vanilla Cold Brew');
+await page.getByRole('dialog').getByLabel('Category').selectOption('Coffee');
+await page.getByRole('dialog').getByLabel('Price').fill('5.75');
+await page.getByRole('dialog').getByRole('button', { name: 'Add drink' }).click();
+await page.getByText('Vanilla Cold Brew added').waitFor();
+
+await page.getByRole('button', { name: 'Add recipe' }).click();
+await page.getByRole('dialog').getByLabel('Drink').selectOption({ label: 'Vanilla Cold Brew — Coffee — $5.75' });
+await page.getByRole('dialog').getByLabel('Ingredient 1', { exact: true }).selectOption('i1');
+await page.getByRole('dialog').getByLabel('Quantity 1', { exact: true }).fill('18');
+await page.getByRole('dialog').getByRole('button', { name: 'Add recipe' }).click();
+await page.getByText('Vanilla Cold Brew recipe added').waitFor();
 await shot('07-recipes-desktop');
 await page.getByRole('tab', { name: 'Audit logs' }).click();
 await page.getByRole('heading', { name: 'Stock audit log' }).waitFor();

@@ -9,7 +9,7 @@
 -- Iced Coffee category
 INSERT INTO public.ingredients (id, name, category, unit, current_stock, reorder_level, cost_per_unit, supplier)
 VALUES
-  ('00000000-0000-4000-8000-000000001601', 'Santos Sumatra 60arabica/40robusta', 'Coffee', 'g', 5000, 1000, 0.050, 'Coffee Supplies'),
+  
   ('00000000-0000-4000-8000-000000001602', 'Mineral Water', 'Other', 'ml', 20000, 5000, 0.002, 'Water Distributors'),
   ('00000000-0000-4000-8000-000000001603', 'Iodized Salt', 'Other', 'g', 500, 100, 0.001, 'Food Service'),
   ('00000000-0000-4000-8000-000000001604', 'Jersey Condensed', 'Dairy', 'g', 800, 300, 0.009, 'Dairy Farm'),
